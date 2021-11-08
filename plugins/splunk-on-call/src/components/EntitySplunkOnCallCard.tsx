@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAsync } from 'react-use';
 import { Entity } from '@backstage/catalog-model';
 import { useEntity } from '@backstage/plugin-catalog-react';
@@ -73,13 +73,36 @@ export const MissingEventsRestEndpoint = () => (
 export const isSplunkOnCallAvailable = (entity: Entity) =>
   Boolean(entity.metadata.annotations?.[SPLUNK_ON_CALL_TEAM]);
 
-export const EntitySplunkOnCallCard = () => {
-  const config = useApi(configApiRef);
+const getValue = (obj: any, key: string, defaultValue: any = undefined): any => {
+  let value = defaultValue;
+  if( obj.hasOwnProperty(key) ) {
+    value = obj[key];
+    if( typeof value === 'function' ) {
+      value = value(defaultValue);
+    }
+  }
+  return value;
+}
+
+export const useSplunkApi = () => {
   const api = useApi(splunkOnCallApiRef);
+  return api;
+}
+
+export const EntitySplunkOnCallCard = ( props: any ) => {
+  const api = useApi(splunkOnCallApiRef);
+  
+  useEffect(() => {
+    return () => {
+      api.clearCache();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const config = useApi(configApiRef);
   const { entity } = useEntity();
   const [showDialog, setShowDialog] = useState<boolean>(false);
   const [refreshIncidents, setRefreshIncidents] = useState<boolean>(false);
-  const team = entity.metadata.annotations![SPLUNK_ON_CALL_TEAM];
+  const team = props.team || entity.metadata.annotations![SPLUNK_ON_CALL_TEAM];
 
   const eventsRestEndpoint =
     config.getOptionalString('splunkOnCall.eventsRestEndpoint') || null;
@@ -108,7 +131,7 @@ export const EntitySplunkOnCallCard = () => {
       {},
     );
     const teams = await api.getTeams();
-    const foundTeam = teams.find(teamValue => teamValue.name === team);
+    const foundTeam = teams.find((teamValue: any) => teamValue.name === team);
     return { usersHashMap, foundTeam };
   });
 
@@ -170,12 +193,14 @@ export const EntitySplunkOnCallCard = () => {
     icon: <WebIcon />,
   };
 
+  const title = getValue(props, 'title', "Splunk On-Call");
+  const subTitle = getValue(props, 'sub-title', <Typography key="team_name">Team: {team}</Typography> );
   return (
     <Card>
       <CardHeader
-        title="Splunk On-Call"
+        title={title}
         subheader={[
-          <Typography key="team_name">Team: {team}</Typography>,
+          subTitle,
           <HeaderIconLinkRow
             key="incident_trigger"
             links={[serviceLink, triggerLink]}

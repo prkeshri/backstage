@@ -53,7 +53,16 @@ export class SplunkOnCallClient implements SplunkOnCallApi {
       discoveryApi,
     });
   }
+
+  private requestCache: {
+    [key: string]: any;
+  } = {};
+
   constructor(private readonly config: ClientApiConfig) {}
+
+  clearCache() {
+    this.requestCache = {};
+  }
 
   async getIncidents(): Promise<Incident[]> {
     const url = `${await this.config.discoveryApi.getBaseUrl(
@@ -134,15 +143,41 @@ export class SplunkOnCallClient implements SplunkOnCallApi {
   }
 
   private async getByUrl<T>(url: string): Promise<T> {
+    let existing = this.requestCache[url];
+    if(existing) {
+      existing = await existing;
+      return existing;
+    }
+
     const options = {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
     };
-    const response = await this.request(url, options);
 
-    return response.json();
+    let _resolve: (value: unknown) => void = () => {}; 
+    let _reject = _resolve;
+    this.requestCache[url] = new Promise((resolve, reject) => {
+      _resolve = resolve;
+      _reject = reject;
+    });
+
+    try {
+      const response =  await this.request(url, options);
+
+      const json = await response.json();
+
+      this.requestCache[url] = json;
+
+      _resolve(json);
+
+      return json;
+    } catch (e) {
+      _reject(e);
+      throw e;
+    }
+    
   }
 
   private async request(

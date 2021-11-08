@@ -26,7 +26,7 @@ export {
   splunkOnCallPlugin as plugin,
   SplunkOnCallPage,
 } from './plugin';
-export { isSplunkOnCallAvailable } from './components/EntitySplunkOnCallCard';
+export { isSplunkOnCallAvailable, useSplunkApi } from './components/EntitySplunkOnCallCard';
 export {
   SplunkOnCallClient,
   splunkOnCallApiRef,

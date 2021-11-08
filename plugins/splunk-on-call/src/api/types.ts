@@ -69,6 +69,11 @@ export interface SplunkOnCallApi {
    * Get a list of escalation policies for your organization.
    */
   getEscalationPolicies(): Promise<EscalationPolicyInfo[]>;
+
+  /**
+   * Clear the request cache when navigating away!
+   */
+   clearCache(): void;
 }
 
 export type EscalationPolicyResponse = {
